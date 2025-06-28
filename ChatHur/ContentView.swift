@@ -9,65 +9,18 @@ import SwiftUI
 import FoundationModels
 
 struct ContentView: View {
-    let session = LanguageModelSession(instructions: """
-        You are an AI that is used for a chat bot. 
-        
-        The chats are send by you every message and are represented in JSON. The JSON will look look something like this '
-        [
-            {
-                "text" : "Hi how are you?",
-                "isUser" : true,
-                "isError" : false
-            }
-        ]'
-        
-        The isUser represents if the message is from the user, if this is false the message is from you. If a message has the isError to true the message can be ignored. Always answer to the last message.
-        
-        You must respond in the same language as the user and you should only send the message so you dont create any JSON only lingustiqs.
-        """)
-    private var model = SystemLanguageModel.default
-    
     @State var text = ""
     @State var chatLog: [chatItem] = []
     @State var isLoading: Bool = false
     
-    let options = GenerationOptions(temperature: 2.0)
-    let encoder = JSONEncoder()
-    func callAI() async{
-        do {
-            model.supportedLanguages.forEach { print($0) }
-            encoder.outputFormatting = .prettyPrinted
-            if let jsonData = try? encoder.encode(chatLog),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                print(jsonString)
-                
-                let response = try await session.respond(
-                    to: jsonString,
-                    options: options
-                )
-                self.$chatLog.wrappedValue.append(chatItem(
-                    text: response.content,
-                    isUser: false
-                ))
-            }
-            
-        }
-        catch(let error) {
-            print("Error: \(error)")
-            self.$chatLog.wrappedValue.append(chatItem(
-                text: error.localizedDescription,
-                isUser: false,
-                isError: true
-            ))
-            
-        }
-        isLoading = false
-        
+    let AppleIntelligenceModel :AppleInteligenceAPI = .shared
+    let availabilty: ModelAvail
+    init(){
+        availabilty = AppleIntelligenceModel.checkAvailability()
     }
-    
     var body: some View {
-        switch model.availability {
-        case .available:
+        
+        if availabilty.isAvailable == true {
                 // Show your intelligence UI.
             Text("Apple intelligence is Available").font(.title3)
             VStack{
@@ -111,7 +64,27 @@ struct ContentView: View {
                                     isUser: true
                                 ))
                                 text = ""
-                                await callAI()
+                                isLoading = true
+                                let response = await AppleIntelligenceModel
+                                    .sendMessage(
+                                        message:nil,
+                                        history: self.chatLog
+                                    )
+                                if response.isSuccess {
+                                    self.$chatLog.wrappedValue.append(chatItem(
+                                        text: response.message!,
+                                        isUser: false
+                                    ))
+                                }
+                                else{
+                                    self.chatLog.append(chatItem(
+                                        text: response.error!,
+                                        isUser: false,
+                                        isError: true
+                                    ))
+                                }
+                                isLoading = false
+                                
                             }
                         }
                     } label: {
@@ -120,22 +93,10 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
             }
-            
-        case .unavailable(.deviceNotEligible):
-            Text("Your device is not eligible for apple Intelligence.")
-                .font(.title)
-                // Show an alternative UI.
-        case .unavailable(.appleIntelligenceNotEnabled):
-            Text("Apple Intelligence not enabled").font(.title)
-                // Ask the person to turn on Apple Intelligence.
-        case .unavailable(.modelNotReady):
-            Text("The model isn't ready yet. might be a few minutes")
-                .font(.title)
-                // The model isn't ready because it's downloading or because of other system reasons.
-        case .unavailable(let other):
-            Text("Unavailable due to \(other.hashValue.description)")
-                .font(.title)
-                // The model is unavailable for an unknown reason.
+        }
+        else{
+            Text("Apple Intelligence Model is not available.")
+            Text("\(availabilty.reason!)")
         }
     }
 }
