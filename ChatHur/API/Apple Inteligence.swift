@@ -9,7 +9,7 @@ import Foundation
 import FoundationModels
 import SwiftUI
 
-class AppleInteligenceAPI {
+class AppleInteligenceAPI: ApiBasics {
         //    Generic
     static let shared = AppleInteligenceAPI()
     static let baseSystemPrompt = """
