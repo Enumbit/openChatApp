@@ -34,11 +34,14 @@ struct ConnectorApi {
         let (responseData, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("Error in getting the response")
             throw ConnectorApiError.invalidResponse
         }
         
             // Check for HTTP errors
         guard 200...299 ~= httpResponse.statusCode else {
+            print("Status code error: \(httpResponse.statusCode)")
+            print(responseData)
             throw ConnectorApiError.httpError(httpResponse.statusCode, responseData)
         }
         

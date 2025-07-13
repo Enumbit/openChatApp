@@ -1,15 +1,15 @@
-//
-//  OpenWebUi.swift
-//  ChatHur
-//
-//  Created by Mark Heijnekamp on 29/06/2025.
-//
+    //
+    //  OpenWebUi.swift
+    //  ChatHur
+    //
+    //  Created by Mark Heijnekamp on 29/06/2025.
+    //
 
 import Foundation
 internal import Combine
 
 class OpenWebUi: ObservableObject{
-     static var shared = OpenWebUi()
+    static var shared = OpenWebUi()
     
     @Published var id: String? = "b75c0767-4485-4600-b88a-e0cd1a55715b"
     @Published var messages: [ChatmessageModel] = []
@@ -71,6 +71,7 @@ class OpenWebUi: ObservableObject{
             assistant: true,
             parentId:  newMessage
                 .id)
+        newMessage.childrenIds.append(emptyAiMessage.id)
         messages.append(newMessage)
         messages.append(emptyAiMessage)
         guard let chatId = self.id else {
@@ -86,7 +87,7 @@ class OpenWebUi: ObservableObject{
         }
         newMessage.models = self.models
         
-        guard let url = URL(
+        guard let chatUrl = URL(
             string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
                 .updateSingluarChat(id: chatId)
         )
@@ -96,24 +97,12 @@ class OpenWebUi: ObservableObject{
         }
         do {
             let chatResponse = try await ConnectorApi.request(
-                url: url,
+                url: chatUrl,
                 data: ChatRequest(messages: messages),
                 responseType: ChatResponse.self,
                 bearerToken: OpenWebUiConfigModel.bearerToken,
                 method: "POST"
             )
-            
-                // Access the response data
-            print("Chat ID: \(chatResponse.id)")
-            print("Title: \(chatResponse.chat.title)")
-            print("Messages count: \(chatResponse.chat.messages.count)")
-            
-                // Get the latest AI response
-            if let lastMessage = chatResponse.chat.messages.last {
-                print("AI Response: \(lastMessage.content)")
-            }
-            
-//            Call Completions
             
                 // Create your ChatRequest as before
             let chatRequest = ChatRequest(messages: messages)
@@ -135,13 +124,64 @@ class OpenWebUi: ObservableObject{
             let completionResponse = try await ConnectorApi.request(
                 url: url,
                 data: completionsRequest,
-                responseType: CompletionTaskResponse.self,
+                responseType: StandardCompletionResponse.self,
                 bearerToken: OpenWebUiConfigModel.bearerToken,
                 method: "POST"
             )
             print("completion Response\(completionResponse)")
             
+            let lastAiMessage = messages.lastIndex{ ChatmessageModel in
+                ChatmessageModel.role.lowercased() == "assistant"
+            }
             
+            messages[lastAiMessage!].content = completionResponse.choices.first?.message.content ?? ""
+            messages[lastAiMessage!].usage = completionResponse.usage
+            messages[lastAiMessage!].done = true
+            
+            
+            guard let url = URL(
+                string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                    .completeChat
+            )else{
+                print("invalid url")
+                throw URLError(.badURL)
+            }
+            let completedResponse = try await ConnectorApi.request(
+                url: url,
+                data: ChatCompletionRequestData(
+                    model: completionResponse.model,
+                    messages: messages,
+                    modelItem: ModelItem(
+                        id: messages[lastAiMessage!].id, name: "gemma3:1b"
+                    ), chatId: chatId,
+                    id: messages[lastAiMessage!].id
+                ),
+                responseType: CompletionTaskResponse.self,
+                bearerToken: OpenWebUiConfigModel.bearerToken,
+                method: "POST"
+            )
+            print("completedResponse \(completionResponse)")
+            
+//            Update the chat with the AI response
+            
+            
+            let newchatResponse = try await ConnectorApi.request(
+                url: chatUrl,
+                data: ChatRequest(messages: messages),
+                responseType: ChatResponse.self,
+                bearerToken: OpenWebUiConfigModel.bearerToken,
+                method: "POST"
+            )
+            
+                // Access the response data
+            print("Chat ID: \(chatResponse.id)")
+            print("Title: \(chatResponse.chat.title)")
+            print("Messages count: \(chatResponse.chat.messages.count)")
+            
+                // Get the latest AI response
+            if let lastMessage = chatResponse.chat.messages.last {
+                print("AI Response: \(lastMessage.content)")
+            }
             
         } catch {
             print("Error: \(error)")
@@ -180,6 +220,7 @@ struct OpenWebUIRoutes {
         return "api/v1/chats/\(id)"
     }
     static let completionChat = "api/chat/completions"
+    static let completeChat = "api/chat/completed"
 }
 
 enum OpenWebUIError: Error {
@@ -188,7 +229,7 @@ enum OpenWebUIError: Error {
     case invalidUrl
 }
 
-//    // MARK: - Empty Object for params
+    //    // MARK: - Empty Object for params
 struct EmptyObject: Codable {
     init(){
         
