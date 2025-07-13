@@ -5,9 +5,9 @@
 //  Created by Mark Heijnekamp on 12/06/2025.
 //
 
-class chatItem: Hashable,Codable {
+class ChatItem: Hashable,Codable {
         // Equatable conformance
-    static func == (lhs: chatItem, rhs: chatItem) -> Bool {
+    static func == (lhs: ChatItem, rhs: ChatItem) -> Bool {
         return lhs.text == rhs.text && lhs.isUser == rhs.isUser
     }
     

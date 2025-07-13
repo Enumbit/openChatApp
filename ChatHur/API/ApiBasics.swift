@@ -8,7 +8,7 @@
 protocol ApiBasics {
     static var baseSystemPrompt: String { get }
     
-    func sendMessage(message: String?, history:[chatItem]?) async -> ModelResponse
+    func sendMessage(message: String?, history:[ChatItem]?) async -> ModelResponse
     
     func checkAvailability() -> ModelAvail
     

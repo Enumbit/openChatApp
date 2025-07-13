@@ -37,7 +37,7 @@ class AppleInteligenceAPI: ApiBasics {
     let model = SystemLanguageModel.default
     let options = GenerationOptions(temperature: 2.0)
     var session:LanguageModelSession
-    func sendMessage(message: String?, history:[chatItem]?) async -> ModelResponse{
+    func sendMessage(message: String?, history:[ChatItem]?) async -> ModelResponse{
         if(checkShouldNotSendMessage()){
             // Message should not be send
             return ModelResponse(isSuccess: false, error: "Model is not ready")
