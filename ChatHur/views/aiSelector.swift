@@ -12,7 +12,7 @@ struct aiSelector: View {
         NavigationView {
             List{
                 NavigationLink {
-                    OpenWebUiChat()
+                        OpenWebUIOrAuth()
                 } label: {
                     Text("Openwebui Chat")
                 }

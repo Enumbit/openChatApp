@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct OpenWebUiChat: View {
+    var chatId: String
     @State var selectedModel = ""
     @StateObject var OpenWebUiModel = OpenWebUi.shared
     @State var isLoading = false
@@ -21,8 +22,9 @@ struct OpenWebUiChat: View {
             
         }
         .navigationTitle("OpenwebUI chat!")
-        .onAppear() {
+        .task {
             Task {
+                OpenWebUi.shared.chatId = chatId
                 self.isLoading = true
                 let response = try await OpenWebUi.shared
                     .fetchChat()
@@ -36,5 +38,5 @@ struct OpenWebUiChat: View {
 }
 
 #Preview {
-    OpenWebUiChat()
+    OpenWebUiChat(chatId: "b75c0767-4485-4600-b88a-e0cd1a55715b")
 }

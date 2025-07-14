@@ -11,13 +11,40 @@ internal import Combine
 class OpenWebUi: ObservableObject{
     static var shared = OpenWebUi()
     
-    @Published var id: String? = "b75c0767-4485-4600-b88a-e0cd1a55715b"
+    @Published var chatId: String? = "b75c0767-4485-4600-b88a-e0cd1a55715b"
     @Published var messages: [ChatmessageModel] = []
     @Published var models: [String] = ["gemma3:1b"]
     
     func fetchModels() async throws {
         
     }
+    
+    func fetchChats() async throws -> [chatListItem] {
+        guard let url = URL(
+            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                .listChats
+            ) else{
+            print("Invalid URL")
+            throw URLError(.badURL)
+        }
+
+        do {
+            let chats = try await ConnectorApi.request(
+                url: url,
+                data: messages,
+                responseType: [chatListItem].self,
+                bearerToken: OpenWebUiConfigModel.bearerToken
+            )
+            
+            return chats
+            
+        } catch {
+            print("Error: \(error)")
+        }
+        return []
+        
+    }
+    
     func startNewChat() async throws {
         let url = URL(
             string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes.startNewChat
@@ -25,7 +52,7 @@ class OpenWebUi: ObservableObject{
     }
     
     func fetchChat() async throws -> ChatResponse? {
-        guard let chatId = self.id else {
+        guard let chatId = self.chatId else {
             print("No ChatID was provided")
             throw OpenWebUIError.missingChatId
         }
@@ -62,31 +89,7 @@ class OpenWebUi: ObservableObject{
         return nil
     }
     
-    func sendMessage(content: String, models: [String] = []) async throws {
-        var newMessage = ChatmessageModel(
-            content: content,
-            parentId: messages.last?.id ?? ""
-        );
-        let emptyAiMessage = ChatmessageModel(
-            assistant: true,
-            parentId:  newMessage
-                .id)
-        newMessage.childrenIds.append(emptyAiMessage.id)
-        messages.append(newMessage)
-        messages.append(emptyAiMessage)
-        guard let chatId = self.id else {
-            print("No ChatID was provided")
-            throw OpenWebUIError.missingChatId
-        }
-        if models.count == 0 && self.models.count == 0 {
-            print("No Models where provided")
-            throw OpenWebUIError.missingModelId
-        }
-        if models.count > 0 {
-            self.models = models
-        }
-        newMessage.models = self.models
-        
+    func updateChat(chatId: String, messages: [ChatmessageModel]) async throws -> ChatResponse? {
         guard let chatUrl = URL(
             string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
                 .updateSingluarChat(id: chatId)
@@ -95,7 +98,7 @@ class OpenWebUi: ObservableObject{
             print("Invalid URL")
             throw URLError(.badURL)
         }
-        do {
+        do{
             let chatResponse = try await ConnectorApi.request(
                 url: chatUrl,
                 data: ChatRequest(messages: messages),
@@ -103,24 +106,30 @@ class OpenWebUi: ObservableObject{
                 bearerToken: OpenWebUiConfigModel.bearerToken,
                 method: "POST"
             )
-            
-                // Create your ChatRequest as before
-            let chatRequest = ChatRequest(messages: messages)
-            
-                // Convert it to CompletionsRequest for the API
-            let completionsRequest = CompletionsRequest(
-                from: chatRequest,
-                chatId: chatId,
-                stream: false
-            )
-            
-            guard let url = URL(
-                string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
-                    .completionChat
-            )else{
-                print("invalid url")
-                throw URLError(.badURL)
-            }
+            return chatResponse
+        } catch {
+            print("Error while updating the chat: \(error)")
+        }
+        return nil
+    }
+    
+    func getCompletion(chatId: String,messages: [ChatmessageModel]) async throws -> StandardCompletionResponse? {
+        let chatRequest = ChatRequest(messages: messages)
+        
+        let completionsRequest = CompletionsRequest(
+            from: chatRequest,
+            chatId: chatId,
+            stream: false //Streaming will be enabled in a later version.
+        )
+        
+        guard let url = URL(
+            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                .completionChat
+        )else{
+            print("invalid url")
+            throw URLError(.badURL)
+        }
+        do{
             let completionResponse = try await ConnectorApi.request(
                 url: url,
                 data: completionsRequest,
@@ -128,68 +137,115 @@ class OpenWebUi: ObservableObject{
                 bearerToken: OpenWebUiConfigModel.bearerToken,
                 method: "POST"
             )
-            print("completion Response\(completionResponse)")
-            
-            let lastAiMessage = messages.lastIndex{ ChatmessageModel in
-                ChatmessageModel.role.lowercased() == "assistant"
-            }
-            
-            messages[lastAiMessage!].content = completionResponse.choices.first?.message.content ?? ""
-            messages[lastAiMessage!].usage = completionResponse.usage
-            messages[lastAiMessage!].done = true
-            
-            
-            guard let url = URL(
-                string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
-                    .completeChat
-            )else{
-                print("invalid url")
-                throw URLError(.badURL)
-            }
-            let completedResponse = try await ConnectorApi.request(
-                url: url,
-                data: ChatCompletionRequestData(
-                    model: completionResponse.model,
-                    messages: messages,
-                    modelItem: ModelItem(
-                        id: messages[lastAiMessage!].id, name: "gemma3:1b"
-                    ), chatId: chatId,
-                    id: messages[lastAiMessage!].id
-                ),
-                responseType: CompletionTaskResponse.self,
-                bearerToken: OpenWebUiConfigModel.bearerToken,
-                method: "POST"
-            )
-            print("completedResponse \(completionResponse)")
-            
-//            Update the chat with the AI response
-            
-            
-            let newchatResponse = try await ConnectorApi.request(
-                url: chatUrl,
-                data: ChatRequest(messages: messages),
-                responseType: ChatResponse.self,
-                bearerToken: OpenWebUiConfigModel.bearerToken,
-                method: "POST"
-            )
-            
-                // Access the response data
-            print("Chat ID: \(chatResponse.id)")
-            print("Title: \(chatResponse.chat.title)")
-            print("Messages count: \(chatResponse.chat.messages.count)")
-            
-                // Get the latest AI response
-            if let lastMessage = chatResponse.chat.messages.last {
-                print("AI Response: \(lastMessage.content)")
-            }
-            
+            return completionResponse
         } catch {
-            print("Error: \(error)")
+            print("Error while fetching completions: \(error)")
+        }
+        return nil
+    }
+    
+    func sendMessage(content: String, models: [String] = []) async throws {
+        
+            //Check if chatId is set
+        guard let chatId = self.chatId else {
+            print("No ChatID was provided")
+            throw OpenWebUIError.missingChatId
+        }
+            //        Check if model is set
+        if models.count == 0 && self.models.count == 0 {
+            print("No Models where provided")
+            throw OpenWebUIError.missingModelId
+        }
+            //Sync the models
+        if models.count > 0 {
+            self.models = models
+        }
+        
+            //Set the new message
+        var newMessage = ChatmessageModel(
+            content: content,
+            parentId: messages.last?.id ?? ""
+        );
+        newMessage.models = self.models
+            //Prepare an assistant message
+        let emptyAiMessage = ChatmessageModel(
+            assistant: true,
+            parentId:  newMessage.id
+        )
+            //Append the messages
+        newMessage.childrenIds.append(emptyAiMessage.id)
+        messages.append(newMessage)
+        messages.append(emptyAiMessage)
+        
+        _ = try await updateChat(chatId: chatId, messages: messages)
+        
+        let completionResponse = try await getCompletion(
+            chatId: chatId,
+            messages: messages
+        )
+        
+        _ = messages.lastIndex{ ChatmessageModel in
+            ChatmessageModel.role.lowercased() == "assistant"
+        }
+        if let completionResponse = completionResponse {
+            if let lastAiMessage = messages.lastIndex(where: { ChatmessageModel in
+                ChatmessageModel.role.lowercased() == "assistant"
+            }) {
+                
+                messages[lastAiMessage].content = completionResponse.choices.first?.message.content ?? ""
+                messages[lastAiMessage].usage = completionResponse.usage
+                messages[lastAiMessage].done = true
+                
+                guard let url = URL(
+                    string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                        .completeChat
+                )else{
+                    print("invalid url")
+                    throw URLError(.badURL)
+                }
+                _ = try await ConnectorApi.request(
+                    url: url,
+                    data: ChatCompletionRequestData(
+                        model: completionResponse.model,
+                        messages: messages,
+                        modelItem: ModelItem(
+                            id: messages[lastAiMessage].id, name: "gemma3:1b"
+                        ), chatId: chatId,
+                        id: messages[lastAiMessage].id
+                    ),
+                    responseType: CompletionTaskResponse.self,
+                    bearerToken: OpenWebUiConfigModel.bearerToken,
+                    method: "POST"
+                )
+                
+                _ = try await updateChat(chatId: chatId, messages: messages)
+            }
+        }
+    }
+    
+    func login(email: String, password: String) async throws -> loginResponse? {
+        guard let url = URL(
+            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                .login
+        )else{
+            print("invalid url")
+            throw URLError(.badURL)
         }
         
         
-        
-        
+        do{
+            let loginResponse = try await ConnectorApi.request(
+                url: url,
+                data: loginRequest(email: email, password: password),
+                responseType: loginResponse.self,
+                bearerToken: OpenWebUiConfigModel.bearerToken,
+                method: "POST"
+            )
+            return loginResponse
+        } catch {
+            print("Error while fetching completions: \(error)")
+        }
+        return nil
     }
 }
 
@@ -207,7 +263,7 @@ struct CompletionTokensDetails: Codable {
 
 class OpenWebUiConfigModel{
     static var baseURL: String = "http://localhost:3000/"
-    static var bearerToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVlNDk1YjdkLTIwODMtNGRkYS05NTZhLTczZWE4NThlY2MyMiJ9.JTx6nOUmk9AO99JguDPyIU2abWFxoGUF6lbRIU5byaI"
+    static var bearerToken: String = ""
 }
 
 struct OpenWebUIRoutes {
@@ -221,26 +277,12 @@ struct OpenWebUIRoutes {
     }
     static let completionChat = "api/chat/completions"
     static let completeChat = "api/chat/completed"
+    
+    static let login = "api/v1/auths/signin"
 }
 
 enum OpenWebUIError: Error {
     case missingModelId
     case missingChatId
     case invalidUrl
-}
-
-    //    // MARK: - Empty Object for params
-struct EmptyObject: Codable {
-    init(){
-        
-    }
-    init(from decoder: Decoder) throws {
-        _ = try decoder.container(keyedBy: CodingKeys.self)
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        _ = encoder.container(keyedBy: CodingKeys.self)
-    }
-    
-    private enum CodingKeys: CodingKey {}
 }
