@@ -1,9 +1,9 @@
-//
-//  loginView.swift
-//  ChatHur
-//
-//  Created by Mark Heijnekamp on 14/07/2025.
-//
+    //
+    //  loginView.swift
+    //  ChatHur
+    //
+    //  Created by Mark Heijnekamp on 14/07/2025.
+    //
 
 import SwiftUI
 
@@ -12,7 +12,7 @@ struct loginView: View {
     var action: (_ email:String, _ password:String) async throws -> Bool = {
         _,
         _  in
-    true
+        true
     }
     var baseUrlCallback: ((String) -> Void)?
     
@@ -42,8 +42,12 @@ struct loginView: View {
                         do{
                             if let baseUrlCallback = baseUrlCallback {
                                 if baseURL.isEmpty {
+                                    #if DEBUG
+                                    baseURL = "http://localhost:3000/"
+                                    #else
                                     loginFailed = true;
                                     return
+                                    #endif
                                 }
                                 baseUrlCallback(baseURL)
                             }
@@ -64,10 +68,10 @@ struct loginView: View {
                 } label: {
                     Text("login")
                 }
-
+                
             }
         }
-
+        
     }
 }
 

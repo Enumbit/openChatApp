@@ -7,16 +7,38 @@
 
 import Foundation
 internal import Combine
+import SwiftUI
 
 class OpenWebUi: ObservableObject{
-    static var shared = OpenWebUi()
+    @ObservedObject static var shared = OpenWebUi()
     
-    @Published var chatId: String? = "b75c0767-4485-4600-b88a-e0cd1a55715b"
+    @Published var chatId: String? = ""
     @Published var messages: [ChatmessageModel] = []
     @Published var models: [String] = ["gemma3:1b"]
     
-    func fetchModels() async throws {
+    func fetchModels() async throws -> ModelFetchResponse?{
+        guard let url = URL(
+            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                .models
+        ) else{
+            print("Invalid URL")
+            throw URLError(.badURL)
+        }
+        do {
+            let models = try await ConnectorApi.request(
+                url: url,
+                data: messages,
+                responseType: ModelFetchResponse.self,
+                bearerToken: OpenWebUiConfigModel.bearerToken
+            )
+            
+            return models
+            
+        } catch {
+            print("Error: \(error)")
+        }
         
+        return nil
     }
     
     func fetchChats() async throws -> [chatListItem] {
@@ -101,7 +123,7 @@ class OpenWebUi: ObservableObject{
         do{
             let chatResponse = try await ConnectorApi.request(
                 url: chatUrl,
-                data: ChatRequest(messages: messages),
+                data: ChatRequest(messages: messages, models: OpenWebUi.shared.models),
                 responseType: ChatResponse.self,
                 bearerToken: OpenWebUiConfigModel.bearerToken,
                 method: "POST"
@@ -114,7 +136,9 @@ class OpenWebUi: ObservableObject{
     }
     
     func getCompletion(chatId: String,messages: [ChatmessageModel]) async throws -> StandardCompletionResponse? {
-        let chatRequest = ChatRequest(messages: messages)
+        let chatRequest = ChatRequest(
+            messages: messages,
+            models: OpenWebUi.shared.models)
         
         let completionsRequest = CompletionsRequest(
             from: chatRequest,
@@ -209,8 +233,10 @@ class OpenWebUi: ObservableObject{
                         model: completionResponse.model,
                         messages: messages,
                         modelItem: ModelItem(
-                            id: messages[lastAiMessage].id, name: "gemma3:1b"
-                        ), chatId: chatId,
+                            id: messages[lastAiMessage].id,
+                            name: self.models.first ?? ""
+                        ),
+ chatId: chatId,
                         id: messages[lastAiMessage].id
                     ),
                     responseType: CompletionTaskResponse.self,
@@ -279,6 +305,7 @@ struct OpenWebUIRoutes {
     static let completeChat = "api/chat/completed"
     
     static let login = "api/v1/auths/signin"
+    static let models = "api/models"
 }
 
 enum OpenWebUIError: Error {

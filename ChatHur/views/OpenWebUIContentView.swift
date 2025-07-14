@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct OpenWebUIOrAuth: View {
+struct OpenWebUIContentView: View {
     @State var isLoggedIn: Bool = false
     var body: some View {
         if OpenWebUiConfigModel.bearerToken.isEmpty && isLoggedIn == false {
@@ -32,5 +32,5 @@ struct OpenWebUIOrAuth: View {
 }
 
 #Preview {
-    OpenWebUIOrAuth()
+    OpenWebUIContentView()
 }

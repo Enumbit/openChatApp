@@ -12,6 +12,7 @@ struct OpenWebUiChat: View {
     @State var selectedModel = ""
     @StateObject var OpenWebUiModel = OpenWebUi.shared
     @State var isLoading = false
+    @State var chatName = "Your chat!"
     var body: some View {
         VStack{
             chatLogView(ChatmessageModel: $OpenWebUiModel.messages)
@@ -21,7 +22,7 @@ struct OpenWebUiChat: View {
             }
             
         }
-        .navigationTitle("OpenwebUI chat!")
+        .navigationTitle(chatName)
         .task {
             Task {
                 OpenWebUi.shared.chatId = chatId
@@ -30,10 +31,23 @@ struct OpenWebUiChat: View {
                     .fetchChat()
                 if let response = response {
                     self.OpenWebUiModel.messages = response.chat.messages
+                    self.chatName = response.title
                 }
                 self.isLoading = false
             }
         }
+        .navigationSubtitle("OpenwebUI chat!")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    OpenWebUiSettings()
+                } label: {
+                    Image(systemName: "gear")
+                }
+
+            }
+        }
+        
     }
 }
 

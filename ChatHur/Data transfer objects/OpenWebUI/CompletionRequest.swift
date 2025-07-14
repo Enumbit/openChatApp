@@ -31,7 +31,7 @@ struct CompletionsRequest: Codable {
     }
     
         // Simplified initializer for basic usage
-    init(chatId: String, messages: [CompletionMessage], model: String = "gemma3:1b", stream: Bool = true) {
+    init(chatId: String, messages: [CompletionMessage], model: String, stream: Bool = true) {
         self.stream = stream
         self.model = model
         self.messages = messages
@@ -48,7 +48,7 @@ struct CompletionsRequest: Codable {
         // Initialize from ChatRequest - converts the complex structure to simple completions format
     init(from chatRequest: ChatRequest, chatId: String, stream: Bool = true) {
         self.stream = stream
-        self.model = chatRequest.chat.models.first ?? "gemma3:1b"
+        self.model = chatRequest.chat.models.first ?? ""
         
             // Convert ChatmessageModel array to CompletionMessage array
             // Filter out empty assistant messages and sort by timestamp
@@ -201,7 +201,7 @@ struct OllamaInfo: Codable {
     let details: OllamaDetails
     let connectionType: String
     let urls: [Int]
-    let expiresAt: Int
+    let expiresAt: String?
     
     enum CodingKeys: String, CodingKey {
         case name, model, size, digest, details, urls

@@ -178,7 +178,7 @@ import Foundation
 struct ChatRequest: Codable {
     let chat: ChatRequestData
     
-    init(messages: [ChatmessageModel], models: [String] = ["gemma3:1b"]) {
+    init(messages: [ChatmessageModel], models: [String] ) {
         self.chat = ChatRequestData(messages: messages, models: models)
     }
 }
@@ -191,7 +191,7 @@ struct ChatRequestData: Codable {
     let params: EmptyObject
     let files: [String]
     
-    init(messages: [ChatmessageModel], models: [String] = ["gemma3:1b"]) {
+    init(messages: [ChatmessageModel], models: [String]) {
         self.models = models
         self.messages = messages.sorted(by: { a, b in
             a.timestamp < b.timestamp
