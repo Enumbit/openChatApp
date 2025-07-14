@@ -9,6 +9,7 @@ import SwiftUI
 
 struct chatInputField: View {
     @State var text = ""
+    @State var isLoading: Bool = false
     var action: (_ text:String) async throws -> Void = { _ in }
     var body: some View {
         HStack{
@@ -20,21 +21,32 @@ struct chatInputField: View {
             .padding()
             .border(.black)
             .padding(.horizontal)
-            Button {
-                Task {
-                    do {
-                        try await action(text)
-                            // Clearing the field
-                        await MainActor.run {
-                            text = ""
+            if isLoading{
+                Image(systemName: "circle.dotted")
+                    .resizable()
+                    .frame(width: 40, height: 40)
+                    .symbolEffect(.rotate)
+            }
+            else{
+                Button {
+                    Task {
+                        do {
+                            self.isLoading = true
+                            let userMessage = text
+                            
+                            await MainActor.run {
+                                text = ""
+                            }
+                            try await action(userMessage)
+                            self.isLoading = false
+                        } catch {
+                            print("Error: \(error)")
+                                // Handle error appropriately
                         }
-                    } catch {
-                        print("Error: \(error)")
-                            // Handle error appropriately
                     }
+                } label: {
+                    Text("Send")
                 }
-            } label: {
-                Text("Send")
             }
         }
         .padding(.horizontal)

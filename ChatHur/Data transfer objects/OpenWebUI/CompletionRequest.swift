@@ -201,13 +201,11 @@ struct OllamaInfo: Codable {
     let details: OllamaDetails
     let connectionType: String
     let urls: [Int]
-    let expiresAt: String?
     
     enum CodingKeys: String, CodingKey {
         case name, model, size, digest, details, urls
         case modifiedAt = "modified_at"
         case connectionType = "connection_type"
-        case expiresAt = "expires_at"
     }
 }
 

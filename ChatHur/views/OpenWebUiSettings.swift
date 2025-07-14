@@ -7,43 +7,44 @@
 
 import SwiftUI
 
-// update OpenWebUi.shared.models
-
 struct OpenWebUiSettings: View {
-    var selectedModel: Binding<String> {
-        Binding(
-            get: { OpenWebUi.shared.models.first ?? "" },
-            set: { newValue in
-                    // Move the selected model to the front of the array
-                var updatedModels = OpenWebUi.shared.models.filter { $0 != newValue }
-                updatedModels.insert(newValue, at: 0)
-                OpenWebUi.shared.models = updatedModels
-            }
-        )
-    }
-    @State var models: [Model] = []
+    @State private var localSelectedModel: String = ""
+    @State private var models: [Model] = []
+    
     var body: some View {
-        VStack{
-            Picker(selection: selectedModel) {
+        VStack {
+            Picker(selection: $localSelectedModel) {
                 ForEach(models) { model in
                     Text(model.name).tag(model.id)
-                    }
+                }
             } label: {
                 Text("Model")
             }
-
-        }.navigationTitle("Openwebui settings")
-            .task {
-                do{
-                    let modelResponse = try await OpenWebUi.shared.fetchModels()
-                    if let data = modelResponse?.data {
-                        models = data
+            .onChange(of: localSelectedModel) { oldValue, newValue in
+                updateSharedModels(with: newValue)
+            }
+        }
+        .navigationTitle("Openwebui settings")
+        .task {
+            do {
+                let modelResponse = try await OpenWebUi.shared.fetchModels()
+                if let data = modelResponse?.data {
+                    models = data
+                    if let firstModel = models.first {
+                        localSelectedModel = firstModel.id
+                        updateSharedModels(with: firstModel.id)
                     }
                 }
-                catch {
-                    print("Error fetching models: \(error)")
-                }
+            } catch {
+                print("Error fetching models: \(error)")
             }
+        }
+    }
+    
+    private func updateSharedModels(with selectedId: String) {
+        var updatedModels = OpenWebUi.shared.models.filter { $0 != selectedId }
+        updatedModels.insert(selectedId, at: 0)
+        OpenWebUi.shared.models = updatedModels
     }
 }
 

@@ -1,9 +1,9 @@
-//
-//  OpenWebUiChat.swift
-//  ChatHur
-//
-//  Created by Mark Heijnekamp on 05/07/2025.
-//
+    //
+    //  OpenWebUiChat.swift
+    //  ChatHur
+    //
+    //  Created by Mark Heijnekamp on 05/07/2025.
+    //
 
 import SwiftUI
 
@@ -11,29 +11,28 @@ struct OpenWebUiChat: View {
     var chatId: String
     @State var selectedModel = ""
     @StateObject var OpenWebUiModel = OpenWebUi.shared
-    @State var isLoading = false
     @State var chatName = "Your chat!"
     var body: some View {
         VStack{
-            chatLogView(ChatmessageModel: $OpenWebUiModel.messages)
-            Spacer()
-            chatInputField { text in
-                try await OpenWebUi.shared.sendMessage(content: text)
-            }
+                chatLogView(ChatmessageModel: $OpenWebUiModel.messages)
+                Spacer()
+                chatInputField { text in
+                    try await
+                    OpenWebUi.shared.sendMessage(content: text)
+                }
+            
             
         }
         .navigationTitle(chatName)
         .task {
             Task {
                 OpenWebUi.shared.chatId = chatId
-                self.isLoading = true
                 let response = try await OpenWebUi.shared
                     .fetchChat()
                 if let response = response {
                     self.OpenWebUiModel.messages = response.chat.messages
                     self.chatName = response.title
                 }
-                self.isLoading = false
             }
         }
         .navigationSubtitle("OpenwebUI chat!")
@@ -44,7 +43,7 @@ struct OpenWebUiChat: View {
                 } label: {
                     Image(systemName: "gear")
                 }
-
+                
             }
         }
         

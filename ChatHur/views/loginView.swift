@@ -25,7 +25,7 @@ struct loginView: View {
         NavigationStack {
             VStack {
                 Text("Login for \(serviceName)").font(.title)
-                
+                Spacer()
                 if loginFailed {
                     Text("Login failed").foregroundColor(.red)
                 }
@@ -33,10 +33,14 @@ struct loginView: View {
                     TextField(text: $baseURL){
                         Text(verbatim: "http://localhost:3000/")
                     }
+                    .textFieldStyle(.roundedBorder)
                 }
                 
                 TextField("Email", text: $email)
+                    .textFieldStyle(.roundedBorder)
                 SecureField("Password", text: $password)
+                    .textFieldStyle(.roundedBorder)
+                Spacer()
                 Button {
                     Task{
                         do{
@@ -67,9 +71,15 @@ struct loginView: View {
                     }
                 } label: {
                     Text("login")
+                        .frame(maxWidth: . infinity)
+                        .padding(5)
                 }
                 
+                .buttonStyle(.glassProminent)
+                .buttonSizing(.automatic)
+
             }
+            .padding()
         }
         
     }
