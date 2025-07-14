@@ -1,9 +1,9 @@
-//
-//  chatLog.swift
-//  ChatHur
-//
-//  Created by Mark Heijnekamp on 05/07/2025.
-//
+    //
+    //  chatLog.swift
+    //  ChatHur
+    //
+    //  Created by Mark Heijnekamp on 05/07/2025.
+    //
 
 import SwiftUI
 
@@ -17,31 +17,57 @@ struct chatLogView: View {
     init(ChatmessageModel: Binding<[ChatmessageModel]>) {
         self._chatLog = Binding(
             get: { ChatmessageModel.wrappedValue.map(\.chatItem) },
-            set: { _ in } // Read-only binding since we're transforming the data
+            set: { _ in }
         )
     }
     
     var body: some View {
-        ScrollView{
-            ForEach(chatLog, id: \.self){item in
-                VStack(alignment: item.isUser ? .trailing: .leading){
-                    Text(item.text)
-                        .foregroundColor(item.isUser ? .primary : .blue)
-                        .fixedSize(horizontal: false, vertical: true)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack {
+                    ForEach(chatLog) { item in
+                        VStack(alignment: item.isUser ? .trailing: .leading) {
+                            Text(item.text)
+                                .foregroundColor(item.isUser ? .primary : .blue)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding()
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .init(
+                                horizontal: item.isUser ? .trailing : .leading,
+                                vertical: .center
+                            )
+                        )
+                        .id(item.id)
+                    }
+                    Color.clear
+                        .frame(height: 1)
+                        .id("bottom")
                 }
-                .padding()
-                .frame(
-                    maxWidth: .infinity,
-                    alignment: .init(
-                        horizontal: item.isUser ? .trailing : .leading,
-                        vertical: .center
-                    )
-                )
+            }
+            .scrollDismissesKeyboard(.immediately)
+            .padding()
+            
+            .onChange(of: chatLog.count) { oldValue, newValue in
+                print("Chatlog changed from \(oldValue) to \(newValue)")
+                
+                    // Scroll on initial load or when new messages are added
+                if oldValue == 0 && newValue > 0 {
+                        // Initial load - give more time for rendering
+                    DispatchQueue.main.async {
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                } else if newValue > oldValue {
+                        // New message added
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }
+                    }
+                }
             }
         }
-        .scrollDismissesKeyboard(.immediately)
-        .padding()
-        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .init(horizontal: .center, vertical: .bottom))
     }
 }
 

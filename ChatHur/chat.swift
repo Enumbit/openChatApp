@@ -5,7 +5,9 @@
 //  Created by Mark Heijnekamp on 12/06/2025.
 //
 
-class ChatItem: Hashable,Codable {
+import Foundation
+
+class ChatItem:Identifiable, Hashable,Codable {
         // Equatable conformance
     static func == (lhs: ChatItem, rhs: ChatItem) -> Bool {
         return lhs.text == rhs.text && lhs.isUser == rhs.isUser
@@ -16,7 +18,7 @@ class ChatItem: Hashable,Codable {
         hasher.combine(text)
         hasher.combine(isUser)
     }
-
+    var id = UUID()
     var text: String
     var isUser: Bool
     var isError: Bool = false
