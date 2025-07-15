@@ -181,6 +181,13 @@ struct ChatRequest: Codable {
     init(messages: [ChatmessageModel], models: [String] ) {
         self.chat = ChatRequestData(messages: messages, models: models)
     }
+    init () {
+        self.chat = ChatRequestData(messages: [], models: [])
+    }
+}
+
+struct EmptyChatRequestData: Codable {
+    var chat: EmptyObject = EmptyObject()
 }
 
     // MARK: - Chat Request Data

@@ -67,10 +67,34 @@ class OpenWebUi: ObservableObject{
         
     }
     
-    func startNewChat() async throws {
-        let url = URL(
-            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes.startNewChat
-        )
+    func startNewChat() async throws -> chatListItem? {
+
+        guard let url = URL(
+            string: OpenWebUiConfigModel.baseURL+OpenWebUIRoutes
+                .startNewChat
+        ) else{
+            print("Invalid URL")
+            throw URLError(.badURL)
+        }
+        
+        do {
+            let chats = try await ConnectorApi.request(
+                url: url,
+                data: EmptyChatRequestData(),
+                responseType: chatListItem.self,
+                bearerToken: OpenWebUiConfigModel.bearerToken,
+                method: "POST"
+            )
+            
+            return chats
+            
+        } catch {
+            print("Error: \(error)")
+        }
+        return nil
+        
+
+        
     }
     
     func fetchChat() async throws -> ChatResponse? {
@@ -94,15 +118,6 @@ class OpenWebUi: ObservableObject{
                 bearerToken: OpenWebUiConfigModel.bearerToken
             )
             
-                // Access the response data
-            print("Chat ID: \(chatResponse.id)")
-            print("Title: \(chatResponse.chat.title)")
-            print("Messages count: \(chatResponse.chat.messages.count)")
-            
-                // Get the latest AI response
-            if let lastMessage = chatResponse.chat.messages.last {
-                print("AI Response: \(lastMessage.content)")
-            }
             return chatResponse
             
         } catch {
@@ -136,6 +151,7 @@ class OpenWebUi: ObservableObject{
     }
     
     func getCompletion(chatId: String,messages: [ChatmessageModel]) async throws -> StandardCompletionResponse? {
+        print("Getting completion")
         let chatRequest = ChatRequest(
             messages: messages,
             models: OpenWebUi.shared.models)
@@ -143,7 +159,7 @@ class OpenWebUi: ObservableObject{
         let completionsRequest = CompletionsRequest(
             from: chatRequest,
             chatId: chatId,
-            stream: false //Streaming will be enabled in a later version.
+            stream: false
         )
         
         guard let url = URL(
@@ -293,7 +309,7 @@ class OpenWebUiConfigModel{
 }
 
 struct OpenWebUIRoutes {
-    static let startNewChat = "/api/v1/chats/new"
+    static let startNewChat = "api/v1/chats/new"
     static let listChats = "api/v1/chats/list"
     static func getSingularChat(id: String) -> String {
         return "api/v1/chats/\(id)"

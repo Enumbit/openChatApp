@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct OpenWebUiChat: View {
-    var chatId: String
+    @State var chatId: String
     @State var selectedModel = ""
-    @StateObject var OpenWebUiModel = OpenWebUi.shared
+    @StateObject var OpenWebUiModel = OpenWebUi()
     @State var chatName = "Your chat!"
     var body: some View {
         VStack{
@@ -18,7 +18,7 @@ struct OpenWebUiChat: View {
                 Spacer()
                 chatInputField { text in
                     try await
-                    OpenWebUi.shared.sendMessage(content: text)
+                    OpenWebUiModel.sendMessage(content: text)
                 }
             
             
@@ -26,8 +26,8 @@ struct OpenWebUiChat: View {
         .navigationTitle(chatName)
         .task {
             Task {
-                OpenWebUi.shared.chatId = chatId
-                let response = try await OpenWebUi.shared
+                OpenWebUiModel.chatId = chatId
+                let response = try await OpenWebUiModel
                     .fetchChat()
                 if let response = response {
                     self.OpenWebUiModel.messages = response.chat.messages

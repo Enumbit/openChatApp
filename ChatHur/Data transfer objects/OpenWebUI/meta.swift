@@ -7,5 +7,5 @@
 
 // MARK: - Meta Model
 struct Meta: Codable {
-    let tags: [String]
+    let tags: [String]?
 }

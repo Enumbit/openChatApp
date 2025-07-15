@@ -9,7 +9,7 @@ import SwiftUI
 
 struct aiSelector: View {
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List{
                 NavigationLink {
                         OpenWebUIContentView()

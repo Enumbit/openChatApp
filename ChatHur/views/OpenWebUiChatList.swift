@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OpenWebUiChatList: View {
     @State var chats: [chatListItem] = []
+    @State private var selectedChatId: String?
     
     var body: some View {
         List(chats, id: \.id) { chat in
@@ -18,9 +19,41 @@ struct OpenWebUiChatList: View {
                 Text(chat.title)
             }
         }
+        .refreshable {
+            Task{
+                await loadChats()
+            }
+        }
         .navigationTitle("Chats")
         .task {
             await loadChats()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        do {
+                            await MainActor.run {
+                                selectedChatId = nil
+                            }
+                            let newChat = try await OpenWebUi.shared.startNewChat()
+                            if let newChat = newChat {
+                                await MainActor.run {
+                                    selectedChatId = newChat.id
+                                }
+                            }
+                        } catch {
+                            print("Error starting new chat: \(error)")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                
+            }
+        }
+        .navigationDestination(item: $selectedChatId) { chatId in
+            OpenWebUiChat(chatId: chatId)
         }
     }
     

@@ -20,6 +20,7 @@ struct CompletionsRequest: Codable {
     let chatId: String
     let id: String
     let backgroundTasks: BackgroundTasks
+    let sessionId: String? = UUID().uuidString + "chatHUR_APP"
     
     enum CodingKeys: String, CodingKey {
         case stream, model, messages, params, features, variables
@@ -28,6 +29,7 @@ struct CompletionsRequest: Codable {
         case chatId = "chat_id"
         case id
         case backgroundTasks = "background_tasks"
+//        case sessionId = "session_id"
     }
     
         // Simplified initializer for basic usage
@@ -228,14 +230,28 @@ struct OllamaDetails: Codable {
 
     // MARK: - Background Tasks
 struct BackgroundTasks: Codable {
+//    "background_tasks": {
+//        "title_generation": true,
+//        "tags_generation": true,
+//        "follow_up_generation": true
+//    }
+
+    
+    
     let followUpGeneration: Bool
+    let tagsGeneration: Bool
+    let titleGeneration: Bool
     
     enum CodingKeys: String, CodingKey {
         case followUpGeneration = "follow_up_generation"
+        case tagsGeneration = "tags_generation"
+        case titleGeneration = "title_generation"
     }
     
-    init(followUpGeneration: Bool = true) {
+    init(followUpGeneration: Bool = false, tagsGeneration: Bool = true, titleGeneration: Bool = true) {
         self.followUpGeneration = followUpGeneration
+        self.tagsGeneration = tagsGeneration
+        self.titleGeneration = titleGeneration
     }
 }
 

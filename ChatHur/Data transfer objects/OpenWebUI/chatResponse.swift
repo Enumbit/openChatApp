@@ -7,16 +7,16 @@
 
     // MARK: - Main Response Model
 struct ChatResponse: Codable {
-    let id: String
-    let userId: String
+    let id: String?
+    let userId: String?
     let title: String
     let chat: Chat
-    let updatedAt: Int
-    let createdAt: Int
+    let updatedAt: Int?
+    let createdAt: Int?
     let shareId: String?
-    let archived: Bool
-    let pinned: Bool
-    let meta: Meta
+    let archived: Bool?
+    let pinned: Bool?
+    let meta: Meta?
     let folderId: String?
     
     enum CodingKeys: String, CodingKey {
